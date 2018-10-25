@@ -1,5 +1,5 @@
 # ===============================================================================
-# Copyright 2018 ross
+# Copyright 2018 gabe-parrish
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,22 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from traits.api import HasTraits, File, List
 
-from pandas import read_csv
+# ============= standard library imports ========================
+import os
 
-
-class Parser(HasTraits):
-
-    # List references the built-in list editor
-    header_list = List
-
-    # When the user selects a file, the decorator triggers the function that reads the headers.
-
-    def parse(self, p):
-        print('parsing {}'.format(p))
-        df = read_csv(p, header=0)
-        self.header_list = list(df.columns.values)
-
-
-# ============= EOF =============================================
+# ============= local library imports ===========================

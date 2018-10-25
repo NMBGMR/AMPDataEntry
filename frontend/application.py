@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from traits.api import HasTraits, File, Button, Instance
-from traitsui.api import View, UItem
+from traits.api import HasTraits, File, Button, Instance, Str
+from traitsui.api import View, UItem, ListStrEditor
 
 from backend.parser import Parser
 
@@ -25,16 +25,27 @@ class Application(HasTraits):
     parse_button = Button('Parse')
     parser = Instance(Parser)
 
-    def _parse_button_fired(self):
+    selected_row = Str
+
+    def _selected_row_changed(self, new):
+        print('the selected row is ', new)
+
+    def _source_file_changed(self):
         self.parser.parse(self.source_file)
+
+    # def _parse_button_fired(self):
+    #     self.parser.parse(self.source_file)
 
     def _parser_default(self):
         return Parser()
 
     def traits_view(self):
         v = View(UItem('source_file'),
-                 UItem('parse_button', enabled_when='source_file'),
-                 title='AMP Data Entry')
+                 UItem('object.parser.header_list', editor=ListStrEditor(selected='selected_row')),
+                 title='AMP Data Entry',
+                 resizable=True,
+                 width=700, height=500
+                 )
         return v
 
 

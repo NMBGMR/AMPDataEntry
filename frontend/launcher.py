@@ -18,6 +18,7 @@ from frontend.application import Application
 
 def main():
     app = Application()
+    app.source_file = '/Users/Gabe/Desktop/juliet_stuff/juliet_jornada_plot_stats/Pixel_012_RZSWF_stats.csv'
     app.configure_traits()
 
 
