@@ -24,7 +24,6 @@ class Parser(HasTraits):
     header_list = List
 
     # When the user selects a file, the decorator triggers the function that reads the headers.
-
     def parse(self, p):
         print('parsing {}'.format(p))
         df = read_csv(p, header=0)

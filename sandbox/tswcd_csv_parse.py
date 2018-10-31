@@ -96,6 +96,10 @@ def gen_parce(csv_path, site_id):
                     "Bicarbonate (HCO3-)", "Chloride (Cl-)",
                     "Sulfate (SO42-)", "Sodium (Na)", "Potassium (K)",
                     "Magnesium (Mg)", "Calcium (Ca)", "Total meq/L Cations", "Total meq/L Anions", "% Difference"]
+    alt_genchem_list = ["pH", "Conductivity (uS/cm)", "TDS (ppm) (calculation)", "Hardness (CaCO3)",
+                    "Bicarbonate (HCO3-)", "Chloride (Cl-)",
+                    "Sulfate (SO42-)", "Sodium (Na)", "Potassium (K)",
+                    "Magnesium (Mg)", "Calcium (Ca)", "Total epm Cations", "Total epm Anions", "% Difference"]
 
     # create a dictionary to hold the name and value of the info that we need from our shopping list.
     relevant_rows = {}
@@ -121,7 +125,7 @@ def gen_parce(csv_path, site_id):
                 if line[0] in minor_chem_rows:
                     minor_rows[line[0]] = line[1]
 
-                if line[0] in genchem_list:
+                if line[0] in genchem_list or alt_genchem_list:
 
                     # if the second column contains a value, we want that value
                     if line[1] != '':
@@ -154,11 +158,22 @@ def gen_parce(csv_path, site_id):
     symbol_col_dict = make_empty_col_dict(genchem_list, "Symbol")
     # print(symbol_col_dict)
 
+    # todo # === make the sample value dictionary ===
+    # sample_val_list = []
+    # for name in genchem_list:
+    #     # get the value from relevant rows
+    #     rel_value = relevant_rows[name]
+    #     sample_val_list.append(rel_value)
+    # sample_val_col_dict = {"Sample Value": sample_val_list}
+    print('relevant rows \n', relevant_rows)
     # === make the sample value dictionary ===
     sample_val_list = []
-    for name in genchem_list:
+    for index, name in enumerate(genchem_list):
         # get the value from relevant rows
-        rel_value = relevant_rows[name]
+        try:
+            rel_value = relevant_rows[name]
+        except KeyError:
+            rel_value = relevant_rows[alt_genchem_list[index]]
         sample_val_list.append(rel_value)
     sample_val_col_dict = {"Sample Value": sample_val_list}
 
@@ -387,6 +402,18 @@ def trace_parce(csv_path, site_id, chemlab_id, minor_rows_gen):
     df.to_csv(new_path)
 
 
+def main(site_id, gen_chem_path, trace_path):
+    """
+
+    :param site_id: string with the site id for NMBGMR site number with A or B ect for chemistry
+    :param gen_chem_path: Path to gen chem csv file
+    :param trace_path: Path to trace_chemistry csv file
+    :return: Outputs a formatted general chemistry and trace chemistry csv for copy and paste into the database.
+    """
+
+
+
+
 if __name__ == "__main__":
     """
     for gen chem and for trace chem we parse them according to the input table formats of Major Chem and Minor Chem
@@ -400,8 +427,32 @@ if __name__ == "__main__":
     kolshorn_trace = "/Users/Gabe/Desktop/AMP/TSWCD_copy_paste_optimization/" \
                      "templatesforgeochemistryfilecopypaste/06-0038_MLC-53_Kolshorn NoLocation_trace.csv"
 
-    # todo - don't forget the A or B etc if it's the first/second sample from the site, got it?
+    # # todo - don't forget the A or B etc if it's the first/second sample from the site, got it?
     site_id = "NM-28308A"
     chemlab_id, minor_rows = gen_parce(kolshorn_gen, site_id)
+    print('chemlab id', chemlab_id, 'minor rows', minor_rows)
+    #
+    # trace_parce(kolshorn_trace, site_id, chemlab_id, minor_rows)
 
-    trace_parce(kolshorn_trace, site_id, chemlab_id, minor_rows)
+
+    # #testing formatting on a directory of formatted gen then formatted trace
+    # # gen_path = "/Users/Gabe/Desktop/AMP/TSWCD_copy_paste_optimization/copy_paste_test_dir/oc_pil_format_gen"
+    #
+    # path = "/Users/Gabe/Desktop/AMP/TSWCD_copy_paste_optimization/copy_paste_test_dir/oc_pil_format"
+    #
+    # # trace_path = "/Users/Gabe/Desktop/AMP/TSWCD_copy_paste_optimization/copy_paste_test_dir/oc_pil_format_trace"
+    #
+    # # format gen
+    # for file in os.listdir(path):
+    #     print(file.split(".")[0])
+    #     if file.split(".")[0].endswith("gen"):
+    #         print('processing')
+    #         process_path = os.path.join(path, file)
+    #         chemlab_id, minor_rows = gen_parce(process_path, site_id)
+    #         trace_file = "{}{}".format(file.split("gen")[0], "trace.csv")
+    #         trace_process_path = os.path.join(path, trace_file)
+    #         trace_parce(trace_process_path, site_id, chemlab_id, minor_rows)
+    #     else:
+    #         continue
+    #
+    # # format trace
