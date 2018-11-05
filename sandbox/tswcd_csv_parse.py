@@ -179,7 +179,7 @@ def gen_parce(csv_path, site_id, output_data_path):
             unit = "pH"
             units_list.append(unit)
         elif name == "Conductivity (uS/cm)":
-            unit = "µS/cm"
+            unit = 'uS/cm'
             units_list.append(unit)
         elif name == "Total meq/L Cations" or name == "Total meq/L Anions":
             unit = "epm"

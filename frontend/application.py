@@ -48,6 +48,4 @@ class Application(HasTraits):
                  )
         return v
 
-
-
 # ============= EOF =============================================
