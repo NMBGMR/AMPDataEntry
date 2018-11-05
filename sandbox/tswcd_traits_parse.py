@@ -18,91 +18,81 @@
 import os
 from traits.api import HasTraits, File, Button, Instance, Str
 from traitsui.api import View, UItem, ListStrEditor
+from traits.trait_base import ETSConfig
 # ============= local library imports ===========================
 from sandbox.tswcd_csv_parse import make_empty_col_dict, data_frame_formatter, gen_parce, trace_parce
 
-class GenchemParse(HasTraits):
+ETSConfig.toolkit = 'qt4'
 
-    # todo - how do these get in here?
+class DataEntry(HasTraits):
+
     site_id = Str
-    csv_path = File
-    # chemlab_id = Str
+    genchem = File
+    # tracechem = File
     chemlab_id = None
     minor_rows = None
+    genchem_dataframe = None
 
-    def _parse(self, site_id, csv_path):
-        self.chemlab_id, self.minor_rows = gen_parce(csv_path, site_id)
+    # todo - add output data paths for the genparce and trace parce
 
-class TracechemParse(HasTraits):
+    output_genchem = File("Where do you want the output of general chemistry?")
+    # output_tracechem = File("Where do you want the output of trace chemistry?")
 
-    chemlab_id = Str
-    csv_path = Str
-    site_id = Str
-    chemlab_id =  Str
-    minor_rows_gen = Str
+    parse_chem = Button('Parse Chemistry')
 
-    def _parse(self):
-        trace_parce(self.csv_path, self.site_id, self.chemlab_id, self.minor_rows_gen)
-
-class Application(HasTraits):
-
-    # Fields the user will fill out.
-    site_id = Str
-    gen_chem_file = File
-    trace_chem_file = File
-    parce_gen_chem = Button("Parse General Chemistry")
-    parce_trace_chem = Button("Parse Trace Chemistry")
-
-    # Fields that will be filled out by using the parce_gen_chem button
-    # a string
-    chemlab_id = None
-    # a dictionary todo - Does traits handle that in the UI?
-    minor_rows = None
-
-    # Instances of Objects: To do things with the inputs
-    gen_parse = Instance(GenchemParse)
-    trace_parse = Instance(TracechemParse)
-
-    def _parce_gen_chem_fired(self):
-        parse_obj = self.gen_parse(self.gen_chem_file, self.site_id)
-        chemlab_id = parse_obj.chemlab_id
-        minor_rows = parse_obj.minor_rows
-
-    def _parce_trace_chem_fired(self):
-        trace_parse = self.trace_parse(self.trace_chem_file, self.site_id, self.chemlab_id, self.minor_rows)
+    # trying to get the button to run the parce function...
+    #
+    def parce_gchem(self):
+        # todo - modify gen-parce and trace_parce to take in an output directory as input
+       self.chemlab_id, self.minor_rows = gen_parce(self.genchem, self.site_id, self.output_genchem)
 
 
-    def traits_view(self):
-        v = View(UItem('site_id'),
-                 UItem('gen_chem_file'),
-                 UItem('trace_chem_file'),
-                 title='TSWCD Data Entry',
-                 resizable=True,
-                 width=700, height=500
-                 )
-        return v
+class ParseTrace(HasTraits):
+
+    def __init__(self, site_id, chemlab_id, minor_rows):
+        self.site_id = site_id
+        self.chemlabid = chemlab_id
+        self.minor_rows = minor_rows
+
+    tracechem = File
+    output_tracechem = File("Where do you want the output of trace chemistry?")
+
+    parse_chem = Button('Parse Chemistry')
+
+    def parce_trace_chem(self):
+        trace_parce(self.tracechem, self.site_id, self.chemlabid, self.minor_rows, self.output_tracechem)
+
+
+class Finished(HasTraits):
+
+    all_done = Str("All Done formatting")
 
 
 def main():
-    """"""
-    # I imagine we'll call the GenchemParse, we'll save the info from Genchem that we need in the application
+    """a linear gui-based formatting tool for TSWCD chemistry operational use"""
 
-    # Then when that's done we'll call the TracechemParse
+    # ==== Panel 1 ======
+    # get the locations of the important files and parse the general chemistry
+    panel_1 = DataEntry()
+    # # for testing
+    # panel_1.genchem = "/Users/Gabe/Desktop/AMP/TSWCD_copy_paste_optimization/" \
+    #                    "templatesforgeochemistryfilecopypaste/06-0038_MLC-53_Kolshorn NoLocation_gen.csv"
+    panel_1.configure_traits()
+    panel_1.parce_gchem()
+    # ==== Panel 2 ======
+    # get the locations for trace chemistry and parce the trace chemistry
+    panel_2 = ParseTrace(panel_1.site_id, panel_1.chemlab_id, panel_1.minor_rows)
+    # # for testing
+    # panel_2.tracechem = "/Users/Gabe/Desktop/AMP/TSWCD_copy_paste_optimization/" \
+    #                     "templatesforgeochemistryfilecopypaste/06-0038_MLC-53_Kolshorn NoLocation_trace.csv"
+    panel_2.configure_traits()
+    panel_2.parce_trace_chem()
+    fin = Finished()
+    fin.configure_traits()
 
-    # # # todo - don't forget the A or B etc if it's the first/second sample from the site, got it?
-    # site_id = "NM-28308A"
-    # # chemlab_id, minor_rows = gen_parce(kolshorn_gen, site_id)
-    # #
-    # # trace_parce(kolshorn_trace, site_id, chemlab_id, minor_rows)
-
-    app = Application()
-    app.gen_chem_file = "/Users/Gabe/Desktop/AMP/TSWCD_copy_paste_optimization/" \
-                   "templatesforgeochemistryfilecopypaste/06-0038_MLC-53_Kolshorn NoLocation_gen.csv"
-    app.trace_chem_file = "/Users/Gabe/Desktop/AMP/TSWCD_copy_paste_optimization/" \
-                     "templatesforgeochemistryfilecopypaste/06-0038_MLC-53_Kolshorn NoLocation_trace.csv"
-
-    app.configure_traits()
-
+    # ==== Questions for Jake ====
+    # 1) how do you get the buttons to actually do something?
+    # 2) what makes the def _something() functions different from def something() functions?
 
 
 if __name__ == '__main__':

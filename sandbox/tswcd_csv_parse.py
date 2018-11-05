@@ -81,7 +81,7 @@ def data_frame_formatter(lst):
     return biggest
 
 
-def gen_parce(csv_path, site_id):
+def gen_parce(csv_path, site_id, output_data_path):
     """
     Parse through Bonnie's old general chemistry spreadsheets and format the data for entry into MS Access...
     :param csv_path:
@@ -97,9 +97,9 @@ def gen_parce(csv_path, site_id):
                     "Sulfate (SO42-)", "Sodium (Na)", "Potassium (K)",
                     "Magnesium (Mg)", "Calcium (Ca)", "Total meq/L Cations", "Total meq/L Anions", "% Difference"]
     alt_genchem_list = ["pH", "Conductivity (uS/cm)", "TDS (ppm) (calculation)", "Hardness (CaCO3)",
-                    "Bicarbonate (HCO3-)", "Chloride (Cl-)",
-                    "Sulfate (SO42-)", "Sodium (Na)", "Potassium (K)",
-                    "Magnesium (Mg)", "Calcium (Ca)", "Total epm Cations", "Total epm Anions", "% Difference"]
+                        "Bicarbonate (HCO3-)", "Chloride (Cl-)",
+                        "Sulfate (SO42-)", "Sodium (Na)", "Potassium (K)",
+                        "Magnesium (Mg)", "Calcium (Ca)", "Total epm Cations", "Total epm Anions", "% Difference"]
 
     # create a dictionary to hold the name and value of the info that we need from our shopping list.
     relevant_rows = {}
@@ -136,12 +136,6 @@ def gen_parce(csv_path, site_id):
 
     except FileNotFoundError:
         print('sorry, cannot find that file')
-
-    # Now comes the time to think about how we get the correct name for the output format placed in the correct order
-    #  in a dataframe or something. Idea: 10 1-column dataframes made from 10 1-key custom dictionaries. Like, for
-    #  example: {'Major Analyte': [pHL, CONDLAB, TDS, HRD, HCO3, Cl, SO4, Na, K, Mg, Ca, TCat, Tan, IONBAL]}, then you
-    #  convert it to a dataframe in the usual way and when ready, we concatenate along the appropriate axis and add the
-    #  details and flourishes we need as we go...
 
     # === make the sample point id dictionary ===
     id_list = []
@@ -240,17 +234,39 @@ def gen_parce(csv_path, site_id):
 
     # now we'll output the dataframe to the best location
 
+    # if output_data_path == None:
+    #
+    #     pathbegin = csv_path.split(".")[0]
+    #     path_end = csv_path.split(".")[1]
+    #
+    #     new_path = "{}_formatted.{}".format(pathbegin, path_end)
+    #
+    #     df.to_csv(new_path)
+    #
+    # else:
+    #     pathbegin = csv_path.split(".")[0]
+    #     if "/" in pathbegin:
+    #         filename = pathbegin.split("/")[-1]
+    #     else:
+    #         # to handle windows file paths
+    #         filename = pathbegin.split("\\")[-1]
+    #     fullpath = os.path.join(output_data_path, "{}_formatted.csv".format(filename))
+    #     df.to_csv(fullpath)
+
+    # ====== OUTPUTTING =======
     pathbegin = csv_path.split(".")[0]
-    path_end = csv_path.split(".")[1]
-
-    new_path = "{}_formatted.{}".format(pathbegin, path_end)
-
-    df.to_csv(new_path)
+    if "/" in pathbegin:
+        filename = pathbegin.split("/")[-1]
+    else:
+        # to handle windows file paths
+        filename = pathbegin.split("\\")[-1]
+    fullpath = os.path.join(output_data_path, "{}_formatted.csv".format(filename))
+    df.to_csv(fullpath)
 
     return chemlab_id, minor_rows
 
 
-def trace_parce(csv_path, site_id, chemlab_id, minor_rows_gen):
+def trace_parce(csv_path, site_id, chemlab_id, minor_rows_gen, output_data_path):
     """"""
     # todo - take care of this section. same approach, just have to deal with two subsets of trace analytes, one thats
     #  on the general chemistry sheet (minor rows gen) and the main one that you'll get out of the trace metals
@@ -268,16 +284,17 @@ def trace_parce(csv_path, site_id, chemlab_id, minor_rows_gen):
                             "Zinc (Zn)  "]
     minor_chem_partial = ["Bromide (Br)", 'Fluoride (F-)', 'Nitrite (NO2-)', 'Nitrate (NO3-)', 'Phosphate (PO43-)']
 
-    minor_chem_partial_spreadsheet = ["Aluminum (Al)", "Antimony (Sb)", "Arsenic (As)", "Barium (Ba)", "Beryllium (Be)",
-                                      "Boron (B)",
-                                      "Cadmium (Cd)", "Chromium (Cr)", "Cobalt (Co)", "Copper (Cu)", "Iron (Fe)",
-                                      "Lead (Pb)",
-                                      "Lithium (Li)", "Manganese (Mn)", "Mercury (Hg)", "Molybdenum (Mo)",
-                                      "Nickel (Ni)",
-                                      "Selenium (Se)", "Strontium (Sr)", "Silica (SiO2)", "Silicon (Si)", "Silver (Ag)",
-                                      "Thalium (Tl)", "Thorium (Th)", "Tin (Sn)", "Titanium (Ti)", "Uranium (U)",
-                                      "Vanadium (V)",
-                                      "Zinc (Zn)  "]
+    # minor_chem_partial_spreadsheet = ["Aluminum (Al)", "Antimony (Sb)", "Arsenic (As)", "Barium (Ba)", "Beryllium (Be)",
+    #                                   "Boron (B)",
+    #                                   "Cadmium (Cd)", "Chromium (Cr)", "Cobalt (Co)", "Copper (Cu)", "Iron (Fe)",
+    #                                   "Lead (Pb)",
+    #                                   "Lithium (Li)", "Manganese (Mn)", "Mercury (Hg)", "Molybdenum (Mo)",
+    #                                   "Nickel (Ni)",
+    #                                   "Selenium (Se)", "Strontium (Sr)", "Silica (SiO2)", "Silicon (Si)", "Silver (Ag)",
+    #                                   "Thalium (Tl)", "Thorium (Th)", "Tin (Sn)", "Titanium (Ti)", "Uranium (U)",
+    #                                   "Vanadium (V)",
+    #                                   "Zinc (Zn)  "]
+
     trace_rows = {}
     try:
         with open(csv_path, mode='r') as csv:
@@ -297,9 +314,9 @@ def trace_parce(csv_path, site_id, chemlab_id, minor_rows_gen):
                     # if the second column contains a value, we want that value
                     if line[1] != '':
                         trace_rows[line[0]] = line[1]
-                    # # if the second column doesn't have a value i.e. total cations, we want the third value
-                    # else:
-                    #     trace_rows[line[0]] = line[2]
+                        # # if the second column doesn't have a value i.e. total cations, we want the third value
+                        # else:
+                        #     trace_rows[line[0]] = line[2]
                 else:
                     print(line[0], "not in the list")
 
@@ -390,28 +407,37 @@ def trace_parce(csv_path, site_id, chemlab_id, minor_rows_gen):
 
     # list the dictionaries in the order they come in the output
     col_dict_list = [samplepoint_col_dict, analyte_col_dict, detection_limit_col_dict, sample_col_dict,
-                     uncertainty_col_dict , analysis_method_col_dict, analysis_date_col_dict, analysis_lab_col_dict]
+                     uncertainty_col_dict, analysis_method_col_dict, analysis_date_col_dict, analysis_lab_col_dict]
 
     df = data_frame_formatter(col_dict_list)
 
+    # if output_data_path == None:
+    #     pathbegin = csv_path.split(".")[0]
+    #     path_end = csv_path.split(".")[1]
+    #
+    #     new_path = "{}_formatted.{}".format(pathbegin, path_end)
+    #
+    #     df.to_csv(new_path)
+    # else:
+    # ====== OUTPUTTING =======
     pathbegin = csv_path.split(".")[0]
-    path_end = csv_path.split(".")[1]
-
-    new_path = "{}_formatted.{}".format(pathbegin, path_end)
-
-    df.to_csv(new_path)
-
-
-def main(site_id, gen_chem_path, trace_path):
-    """
-
-    :param site_id: string with the site id for NMBGMR site number with A or B ect for chemistry
-    :param gen_chem_path: Path to gen chem csv file
-    :param trace_path: Path to trace_chemistry csv file
-    :return: Outputs a formatted general chemistry and trace chemistry csv for copy and paste into the database.
-    """
+    if "/" in pathbegin:
+        filename = pathbegin.split("/")[-1]
+    else:
+        # to handle windows file paths
+        filename = pathbegin.split("\\")[-1]
+    fullpath = os.path.join(output_data_path, "{}_formatted.csv".format(filename))
+    df.to_csv(fullpath)
 
 
+# def main(site_id, gen_chem_path, trace_path):
+#     """
+#
+#     :param site_id: string with the site id for NMBGMR site number with A or B ect for chemistry
+#     :param gen_chem_path: Path to gen chem csv file
+#     :param trace_path: Path to trace_chemistry csv file
+#     :return: Outputs a formatted general chemistry and trace chemistry csv for copy and paste into the database.
+#     """
 
 
 if __name__ == "__main__":
