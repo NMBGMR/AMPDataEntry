@@ -127,6 +127,8 @@ def gen_parce(csv_path, site_id, output_data_path):
 
                 if line[0] in genchem_list or alt_genchem_list:
 
+                    print('{}'.format(line[0]), ' is indeed in the list')
+
                     # if the second column contains a value, we want that value
                     if line[1] != '':
                         relevant_rows[line[0]] = line[1]
@@ -453,12 +455,15 @@ if __name__ == "__main__":
     kolshorn_trace = "/Users/Gabe/Desktop/AMP/TSWCD_copy_paste_optimization/" \
                      "templatesforgeochemistryfilecopypaste/06-0038_MLC-53_Kolshorn NoLocation_trace.csv"
 
+    output_path = "/Users/Gabe/Desktop/AMP/TSWCD_copy_paste_optimization/" \
+                     "templatesforgeochemistryfilecopypaste"
+
     # # todo - don't forget the A or B etc if it's the first/second sample from the site, got it?
     site_id = "NM-28308A"
-    chemlab_id, minor_rows = gen_parce(kolshorn_gen, site_id)
+    chemlab_id, minor_rows = gen_parce(kolshorn_gen, site_id, output_path)
     print('chemlab id', chemlab_id, 'minor rows', minor_rows)
     #
-    # trace_parce(kolshorn_trace, site_id, chemlab_id, minor_rows)
+    trace_parce(kolshorn_trace, site_id, chemlab_id, minor_rows, output_path)
 
 
     # #testing formatting on a directory of formatted gen then formatted trace
