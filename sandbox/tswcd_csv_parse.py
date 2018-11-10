@@ -133,17 +133,18 @@ def gen_parce(csv_path, site_id, output_data_path):
                         print('{}'.format(line[0]), ' has < in it')
                         minor_rows[line[0]] = line[1]
 
-                    elif line[0] in ["Bromide (Br)", 'Nitrite (NO2-)', 'Nitrate (NO3-)', 'Phosphate (PO43-)']:
+                    elif line[0] in ['Nitrite (NO2-)', 'Nitrate (NO3-)', 'Phosphate (PO43-)']: #"Bromide (Br)",
                         # print('lines 1 and 2', line[0], line[1])
                         raw_val = float(line[1])
                         round_val = round(raw_val, 1)
                         minor_rows[line[0]] = "{}".format(round_val)
 
-                    elif line[0] == 'Fluoride (F-)':
+                    elif line[0] in ['Fluoride (F-)', "Bromide (Br)"]:
                         # print('{}'.format(line[0]), ' is floride')
                         raw_val = float(line[1])
                         round_val = round(raw_val, 2)
                         minor_rows[line[0]] = "{}".format(round_val)
+
 
                 if line[0] in list(set().union(genchem_list, alt_genchem_list)):
                     # print('{}'.format(line[0]), ' is indeed in the list')
@@ -338,7 +339,7 @@ def trace_parce(csv_path, site_id, chemlab_id, minor_rows_gen, output_data_path)
 
                 if "<" not in line[1] and line[1] != '' and line[0] in full_minor_chem_list:
                     # round some things to one decimal
-                    if line[0] in ["Bromide (Br)", 'Nitrite (NO2-)', 'Nitrate (NO3-)', 'Phosphate (PO43-)']:
+                    if line[0] in ['Nitrite (NO2-)', 'Nitrate (NO3-)', 'Phosphate (PO43-)']: # "Bromide (Br)",
                         raw_val = float(line[1])
                         round_val = round(raw_val, 1)
                         trace_rows[line[0]] = "{}".format(round_val)
@@ -374,6 +375,21 @@ def trace_parce(csv_path, site_id, chemlab_id, minor_rows_gen, output_data_path)
                 #         # else:
                 #         #     trace_rows[line[0]] = line[2]
 
+                # hard code a possibility for al to be analyzed as an oxide
+                elif line[0] == 'Aluminum (Al2O3)':
+                    # the key will be hardoded as the standard aluminum (AL) to prevent errors from being thrown
+                    print('ALUMINUM VAL', line[1])
+                    if "<" not in line[1]:
+                        value = float(line[1])
+                        round_val = round(value, 3)
+                        trace_rows['Aluminum (Al)'] = "{}".format(round_val)
+                    else:
+                        # trace_rows['Aluminum (Al)'] = line[1]
+                        if line[1] != '':
+                            trace_rows['Aluminum (Al)'] = line[1]
+                        else:
+                            print(line[0], 'there is no value for aluminum in the list')
+
                 # here we take care in case there is a '< symbol'
                 elif line[0] in full_minor_chem_list:
                     if line[1] != '':
@@ -390,6 +406,9 @@ def trace_parce(csv_path, site_id, chemlab_id, minor_rows_gen, output_data_path)
     # add the minor and trace metal analytes that were on the other excel sheet
     for analyte in minor_chem_partial:
         trace_rows[analyte] = minor_rows_gen[analyte]
+
+    # print('trace rows dict \n', trace_rows)
+    # print('trace rows aluminum  ', trace_rows['Aluminum (Al2O3)'])
 
     # ********** ***************************** ************
     # ********** Start MAKING the Dictionaries ************
@@ -432,6 +451,12 @@ def trace_parce(csv_path, site_id, chemlab_id, minor_rows_gen, output_data_path)
             else:
                 sample_value_list.append(trace_rows[analyte])
         except KeyError:
+            # if 'Aluminum (Al)' gives an error assume its 'Aluminum (Al2O3)'
+            # if analyte == 'Aluminum (Al)':
+            #     sample_value_list.append(trace_rows["Aluminum (Al2O3)"])
+            # else:
+            #     print('this analyte was not found in the spreadsheet {}'.format(analyte))
+            #     sample_value_list.append('')
             print('this analyte was not found in the spreadsheet {}'.format(analyte))
             sample_value_list.append('')
         except IndexError:
@@ -492,16 +517,14 @@ if __name__ == "__main__":
     """
 
     # for testing
-    kolshorn_gen = "Z:\\data\datasets\\TSWCD_Chemistry\\BonniesLabResults\\NotInOurDB" \
-                   "\\gabe_temp_geochem\\06-0038_MLC-53_Kolshorn_NoLocation_gen.csv"
+    kolshorn_gen = "Z:\data\datasets\TSWCD_Chemistry\BonniesLabResults\NotInOurDB\gabe_temp_geochem\OC\\05-0203_OC-18_Gallegos_gen.csv"
 
-    kolshorn_trace = "Z:\\data\datasets\\TSWCD_Chemistry\\BonniesLabResults\\NotInOurDB" \
-                     "\\gabe_temp_geochem\\06-0038_MLC-53_Kolshorn_NoLocation_trace.csv"
+    kolshorn_trace = "Z:\data\datasets\TSWCD_Chemistry\BonniesLabResults\NotInOurDB\gabe_temp_geochem\OC\\05-0203_OC-18_Gallegos_trace.csv"
 
-    output = "Z:\data\datasets\TSWCD_Chemistry\BonniesLabResults\NotInOurDB\gabe_temp_geochem"
+    output = "Z:\data\datasets\TSWCD_Chemistry\BonniesLabResults\NotInOurDB\gabe_temp_parse\OC_parse"
 
     # don't forget the A or B etc if it's the first/second sample from the site, got it?
-    site_id = "NM-28308A"
+    site_id = "NM-28311A"
     chemlab_id, minor_rows = gen_parce(kolshorn_gen, site_id, output)
     print('chemlab id', chemlab_id, 'minor rows', minor_rows)
 
