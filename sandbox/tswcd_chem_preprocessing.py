@@ -59,7 +59,6 @@ def convert(excel_file_path):
 
     print('DONE')
 
-
 if __name__ == "__main__":
 
     # # for testing
@@ -70,7 +69,7 @@ if __name__ == "__main__":
 
     # testing script on a directory of two files
 
-    raw_data_dir = "/Users/Gabe/Desktop/AMP/TSWCD_copy_paste_optimization/remainder_NIOURDB/notinourdbfolderforformatting___"
+    raw_data_dir = "Z:\data\datasets\TSWCD_Chemistry\BonniesLabResults\NotInOurDB\gabe_temp_geochem"
 
     for path, dir, files in os.walk(raw_data_dir, topdown=False):
         # print(path)

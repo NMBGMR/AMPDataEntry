@@ -17,6 +17,7 @@
 # ============= standard library imports ========================
 import os
 import pandas as pd
+import sys
 
 
 # ============= local library imports ===========================
@@ -109,35 +110,75 @@ def gen_parce(csv_path, site_id, output_data_path):
     minor_rows = {}
     # open the file
     try:
+        print('trying to open file at {}'.format(csv_path))
         with open(csv_path, mode='r') as csv:
+            # print('file opened')
             for line in csv:
 
                 # get a list of each line with commas and chop off the index
                 line = line.split(",")[1:]
-                # print(line)
+                # print("line!", line)
 
                 # now we need to get the correct values from the lists
 
                 if line[0] == "Lab. Number":
                     chemlab_id = line[1]
+                    print "chemlab id", chemlab_id
 
                 # we also need to kick out Br, F, NO2, NO3, PO4
                 if line[0] in minor_chem_rows:
-                    minor_rows[line[0]] = line[1]
+                    # don't need to worry about rounding if the < is in the minor chem
+                    # print("{}".format(line[0]), ' is a minor chem')
+                    if "<" in line[1]:
+                        print('{}'.format(line[0]), ' has < in it')
+                        minor_rows[line[0]] = line[1]
 
-                if line[0] in genchem_list or alt_genchem_list:
+                    elif line[0] in ["Bromide (Br)", 'Nitrite (NO2-)', 'Nitrate (NO3-)', 'Phosphate (PO43-)']:
+                        # print('lines 1 and 2', line[0], line[1])
+                        raw_val = float(line[1])
+                        round_val = round(raw_val, 1)
+                        minor_rows[line[0]] = "{}".format(round_val)
 
-                    print('{}'.format(line[0]), ' is indeed in the list')
+                    elif line[0] == 'Fluoride (F-)':
+                        # print('{}'.format(line[0]), ' is floride')
+                        raw_val = float(line[1])
+                        round_val = round(raw_val, 2)
+                        minor_rows[line[0]] = "{}".format(round_val)
 
-                    # if the second column contains a value, we want that value
-                    if line[1] != '':
+                if line[0] in list(set().union(genchem_list, alt_genchem_list)):
+                    # print('{}'.format(line[0]), ' is indeed in the list')
+
+                    # TODO - handle the rounding here. round(float, ndigits)
+
+                    # if the second column is tds or hardness, we want that value, rounded to the nearest interger
+                    if line[0] in ["TDS (ppm) (calculation)", "Hardness (CaCO3)"]:
+                        # print('line 0: ', line[0])
+                        # print('line 1: ', line[1])
+                        # print('line 2: ', line[2])
+                        value = float(line[1])
+                        round_val = round(value, 0)
+                        round_val = int(round_val)
+                        relevant_rows[line[0]] = "{}".format(round_val)
+                    # if the second column doesn't have a value i.e. total cations, we want the third value rounded to
+                    #  two decimal places
+                    elif line[0] in ["Total meq/L Cations", "Total meq/L Anions", "Total epm Cations",
+                                     "Total epm Anions", "% Difference"]:
+                        # print('whats line 2?', line[2])
+                        value = float(line[2])
+                        round_val = round(value, 2)
+                        relevant_rows[line[0]] = round_val
+                    # the rest of the values don't seem to need to be rounded
+                    elif line[1] != '':
                         relevant_rows[line[0]] = line[1]
-                    # if the second column doesn't have a value i.e. total cations, we want the third value
-                    else:
-                        relevant_rows[line[0]] = line[2]
 
-    except FileNotFoundError:
-        print('sorry, cannot find that file')
+            #
+            # else:
+            #     print('that row was not relevant')
+
+    except Exception as e:
+        print("the exception", e)
+        print('something has gone wrong')
+    #     # sys.exit("shutdown")
 
     # === make the sample point id dictionary ===
     id_list = []
@@ -154,13 +195,7 @@ def gen_parce(csv_path, site_id, output_data_path):
     symbol_col_dict = make_empty_col_dict(genchem_list, "Symbol")
     # print(symbol_col_dict)
 
-    # todo # === make the sample value dictionary ===
-    # sample_val_list = []
-    # for name in genchem_list:
-    #     # get the value from relevant rows
-    #     rel_value = relevant_rows[name]
-    #     sample_val_list.append(rel_value)
-    # sample_val_col_dict = {"Sample Value": sample_val_list}
+    # === make the sample value dictionary ===
     print('relevant rows \n', relevant_rows)
     # === make the sample value dictionary ===
     sample_val_list = []
@@ -169,6 +204,7 @@ def gen_parce(csv_path, site_id, output_data_path):
         try:
             rel_value = relevant_rows[name]
         except KeyError:
+            print('the key', alt_genchem_list[index])
             rel_value = relevant_rows[alt_genchem_list[index]]
         sample_val_list.append(rel_value)
     sample_val_col_dict = {"Sample Value": sample_val_list}
@@ -270,11 +306,11 @@ def gen_parce(csv_path, site_id, output_data_path):
 
 def trace_parce(csv_path, site_id, chemlab_id, minor_rows_gen, output_data_path):
     """"""
-    # todo - take care of this section. same approach, just have to deal with two subsets of trace analytes, one thats
+    # take care of this section. same approach, just have to deal with two subsets of trace analytes, one thats
     #  on the general chemistry sheet (minor rows gen) and the main one that you'll get out of the trace metals
     # spreasheet that bonnie did. I think if we just do multiple lists subset1, subset2 and then the full set, we'll be
     #  able to get em all out in the correct order.
-    # TODO - also need to get the < from one row to another...
+    # also need to get the < from one row to another...
 
     full_minor_chem_list = ["Bromide (Br)", 'Fluoride (F-)', 'Nitrite (NO2-)', 'Nitrate (NO3-)', 'Phosphate (PO43-)',
                             "Aluminum (Al)", "Antimony (Sb)", "Arsenic (As)", "Barium (Ba)", "Beryllium (Be)",
@@ -285,17 +321,6 @@ def trace_parce(csv_path, site_id, chemlab_id, minor_rows_gen, output_data_path)
                             "Thalium (Tl)", "Thorium (Th)", "Tin (Sn)", "Titanium (Ti)", "Uranium (U)", "Vanadium (V)",
                             "Zinc (Zn)  "]
     minor_chem_partial = ["Bromide (Br)", 'Fluoride (F-)', 'Nitrite (NO2-)', 'Nitrate (NO3-)', 'Phosphate (PO43-)']
-
-    # minor_chem_partial_spreadsheet = ["Aluminum (Al)", "Antimony (Sb)", "Arsenic (As)", "Barium (Ba)", "Beryllium (Be)",
-    #                                   "Boron (B)",
-    #                                   "Cadmium (Cd)", "Chromium (Cr)", "Cobalt (Co)", "Copper (Cu)", "Iron (Fe)",
-    #                                   "Lead (Pb)",
-    #                                   "Lithium (Li)", "Manganese (Mn)", "Mercury (Hg)", "Molybdenum (Mo)",
-    #                                   "Nickel (Ni)",
-    #                                   "Selenium (Se)", "Strontium (Sr)", "Silica (SiO2)", "Silicon (Si)", "Silver (Ag)",
-    #                                   "Thalium (Tl)", "Thorium (Th)", "Tin (Sn)", "Titanium (Ti)", "Uranium (U)",
-    #                                   "Vanadium (V)",
-    #                                   "Zinc (Zn)  "]
 
     trace_rows = {}
     try:
@@ -311,18 +336,53 @@ def trace_parce(csv_path, site_id, chemlab_id, minor_rows_gen, output_data_path)
                 if line[0] == "Lab. Number":
                     chemlab_id = line[1]
 
-                if line[0] in full_minor_chem_list:
+                if "<" not in line[1] and line[1] != '' and line[0] in full_minor_chem_list:
+                    # round some things to one decimal
+                    if line[0] in ["Bromide (Br)", 'Nitrite (NO2-)', 'Nitrate (NO3-)', 'Phosphate (PO43-)']:
+                        raw_val = float(line[1])
+                        round_val = round(raw_val, 1)
+                        trace_rows[line[0]] = "{}".format(round_val)
 
-                    # if the second column contains a value, we want that value
+                    # round some things to two decimals
+                    elif line[0] in ['Fluoride (F-)', "Iron (Fe)"]:
+                        raw_val = float(line[1])
+                        round_val = round(raw_val, 2)
+                        trace_rows[line[0]] = "{}".format(round_val)
+
+                    # round some to things to an interger
+                    elif line[0] in ["Silica (SiO2)   ", "Silicon (Si)"]:
+                        raw_val = float(line[1])
+                        round_val = round(raw_val, 0)
+                        round_val = int(round_val)
+                        trace_rows[line[0]] = "{}".format(round_val)
+
+                    # otherwise round to three decimal places
+                    else:
+                        raw_val = float(line[1])
+                        round_val = round(raw_val, 3)
+                        trace_rows[line[0]] = "{}".format(round_val)
+                # if line[0] in full_minor_chem_list:
+                #
+                #
+                #
+                #     # if the second column contains a value, we want that value
+                #     #TODO - handle the rounding here? round(float, ndigits)
+                #
+                #     if line[1] != '':
+                #         trace_rows[line[0]] = line[1]
+                #         # # if the second column doesn't have a value i.e. total cations, we want the third value
+                #         # else:
+                #         #     trace_rows[line[0]] = line[2]
+
+                # here we take care in case there is a '< symbol'
+                elif line[0] in full_minor_chem_list:
                     if line[1] != '':
                         trace_rows[line[0]] = line[1]
-                        # # if the second column doesn't have a value i.e. total cations, we want the third value
-                        # else:
-                        #     trace_rows[line[0]] = line[2]
+
                 else:
                     print(line[0], "not in the list")
 
-    except FileNotFoundError:
+    except:
         print('sorry, cannot find that file')
     # print('tracerows \n', trace_rows)
     # print('trace rows zinc', trace_rows['Zinc (Zn)'])
@@ -408,19 +468,12 @@ def trace_parce(csv_path, site_id, chemlab_id, minor_rows_gen, output_data_path)
     chemlabid_col_dict = {"Chem Lab ID": chemlab_id_list}
 
     # list the dictionaries in the order they come in the output
-    col_dict_list = [samplepoint_col_dict, analyte_col_dict, detection_limit_col_dict, sample_col_dict,
-                     uncertainty_col_dict, analysis_method_col_dict, analysis_date_col_dict, analysis_lab_col_dict]
+    col_dict_list = [samplepoint_col_dict, analyte_col_dict, detection_limit_col_dict, sample_col_dict, unit_col_dict,
+                     uncertainty_col_dict, analysis_method_col_dict, analysis_date_col_dict, analysis_lab_col_dict,
+                     chemlabid_col_dict]
 
     df = data_frame_formatter(col_dict_list)
 
-    # if output_data_path == None:
-    #     pathbegin = csv_path.split(".")[0]
-    #     path_end = csv_path.split(".")[1]
-    #
-    #     new_path = "{}_formatted.{}".format(pathbegin, path_end)
-    #
-    #     df.to_csv(new_path)
-    # else:
     # ====== OUTPUTTING =======
     pathbegin = csv_path.split(".")[0]
     if "/" in pathbegin:
@@ -432,16 +485,6 @@ def trace_parce(csv_path, site_id, chemlab_id, minor_rows_gen, output_data_path)
     df.to_csv(fullpath)
 
 
-# def main(site_id, gen_chem_path, trace_path):
-#     """
-#
-#     :param site_id: string with the site id for NMBGMR site number with A or B ect for chemistry
-#     :param gen_chem_path: Path to gen chem csv file
-#     :param trace_path: Path to trace_chemistry csv file
-#     :return: Outputs a formatted general chemistry and trace chemistry csv for copy and paste into the database.
-#     """
-
-
 if __name__ == "__main__":
     """
     for gen chem and for trace chem we parse them according to the input table formats of Major Chem and Minor Chem
@@ -449,21 +492,20 @@ if __name__ == "__main__":
     """
 
     # for testing
-    kolshorn_gen = "/Users/Gabe/Desktop/AMP/TSWCD_copy_paste_optimization/" \
-                   "templatesforgeochemistryfilecopypaste/06-0038_MLC-53_Kolshorn NoLocation_gen.csv"
+    kolshorn_gen = "Z:\\data\datasets\\TSWCD_Chemistry\\BonniesLabResults\\NotInOurDB" \
+                   "\\gabe_temp_geochem\\06-0038_MLC-53_Kolshorn_NoLocation_gen.csv"
 
-    kolshorn_trace = "/Users/Gabe/Desktop/AMP/TSWCD_copy_paste_optimization/" \
-                     "templatesforgeochemistryfilecopypaste/06-0038_MLC-53_Kolshorn NoLocation_trace.csv"
+    kolshorn_trace = "Z:\\data\datasets\\TSWCD_Chemistry\\BonniesLabResults\\NotInOurDB" \
+                     "\\gabe_temp_geochem\\06-0038_MLC-53_Kolshorn_NoLocation_trace.csv"
 
-    output_path = "/Users/Gabe/Desktop/AMP/TSWCD_copy_paste_optimization/" \
-                     "templatesforgeochemistryfilecopypaste"
+    output = "Z:\data\datasets\TSWCD_Chemistry\BonniesLabResults\NotInOurDB\gabe_temp_geochem"
 
-    # # todo - don't forget the A or B etc if it's the first/second sample from the site, got it?
+    # don't forget the A or B etc if it's the first/second sample from the site, got it?
     site_id = "NM-28308A"
-    chemlab_id, minor_rows = gen_parce(kolshorn_gen, site_id, output_path)
+    chemlab_id, minor_rows = gen_parce(kolshorn_gen, site_id, output)
     print('chemlab id', chemlab_id, 'minor rows', minor_rows)
-    #
-    trace_parce(kolshorn_trace, site_id, chemlab_id, minor_rows, output_path)
+
+    trace_parce(kolshorn_trace, site_id, chemlab_id, minor_rows, output)
 
 
     # #testing formatting on a directory of formatted gen then formatted trace

@@ -15,14 +15,15 @@
 # ===============================================================================
 
 # ============= standard library imports ========================
+# from traits.trait_base import ETSConfig
+from traits.etsconfig.etsconfig import ETSConfig
+ETSConfig.toolkit = 'qt4'
 import os
-from traits.api import HasTraits, File, Button, Instance, Str, Dict, Bool
+from traits.api import HasTraits, File, Button, Instance, Str, Dict, Bool, Directory
 from traitsui.api import View, UItem, ListStrEditor, Item, VGroup
-from traits.trait_base import ETSConfig
+
 # ============= local library imports ===========================
 from sandbox.tswcd_csv_parse import make_empty_col_dict, data_frame_formatter, gen_parce, trace_parce
-
-ETSConfig.toolkit = 'qt4'
 
 
 class DataEntry(HasTraits):
@@ -30,8 +31,8 @@ class DataEntry(HasTraits):
     genchem = File
     tracechem = File
 
-    output_genchem = File
-    output_tracechem = File
+    output_genchem = Directory
+    output_tracechem = Directory
 
     chemlab_id = Str
     minor_rows = Dict
@@ -124,7 +125,7 @@ class DataEntry(HasTraits):
 # class Finished(HasTraits):
 #     all_done = Str("All Done formatting")
 
-DEBUG = True
+DEBUG = False
 
 
 def main():
