@@ -42,37 +42,18 @@ def main():
     # 25   C276   Accuracy code <-&&&&&&&-> 23   C237   Water-level below LSD have mixed datatypes
 
     # print('this is the raw data', raw_data)
-    pd.set_option('display.max_columns', None)
+    # pd.set_option('display.max_columns', None)
 
     print('data \n', raw_data.iloc[:10, 23])
 
     # ==== Automated Parsing Steps ====
 
+    # ======= WELL SITES ========
+
     # 1) Separate Sites and Water Levels two separate dataframes
 
-    sites_cols = ["1   C001   Site ID (station number)                          ",
-                  "3   C900   Station name                                      ",
-                  "4   C190   Other identifier                                  ",
-                  "5   C008   County code                                       ",
-                  "6   C909   Latitude NAD83 in decimal degrees                 ",
-                  "7   C910   Longitude NAD83 in decimal degrees                ",
-                  "8   C035   Method Lat/Long Determined                        ",
-                  "9   C011   Lat/Long accuracy code                            ",
-                  "10   C016   Altitude of land surface                          ",
-                  "11   C022   Altitude Datum                                    ",
-                  "12   C017   Method altitude determined                        ",
-                  "13   C018   Altitude accuracy                                 ",
-                  "14   C027   Hole depth                                        ",
-                  "15   C028   Well depth                                        ",
-                  "16   C021   Date well constructed                             ",
-                  "17   C023   Primary use of site                               ",
-                  "18   C024   Primary use of water                              ",
-                  "19   C714   Aquifer code                                      ",
-                  "23   C237   Water-level below LSD                             "]
-    water_level_cols = [] # todo - to be determined, i think it's all of the dataset
-
-    # sites_df = raw_data["1   C001   Site ID (station number)                          "]
-    sites_df = raw_data[sites_cols]
+    sites_df = raw_data
+    water_levels = raw_data
 
     # 2) For Sites, delete duplicates of USGS IDs
 
@@ -81,15 +62,27 @@ def main():
 
     # 2a) For Sites, pull sites that are missing corresponding waterlevels...
 
-    # todo - Check w Kitty: i get 28,404 rows (Kitty P. got 28,625)
+    # Check w Kitty: i get 28,404 rows (Kitty P. got 28,625)
     sites_df = sites_df[sites_df["23   C237   Water-level below LSD                             "].notnull()]
+
+    # make sure the water levels are either intergers or floats. Other values are not acceptable i.e. "-. 4"
+    sites_df = sites_df[pd.to_numeric(sites_df["23   C237   Water-level below LSD                             "],
+                           errors='coerce').notnull()]
     print('sites and waterlevels with no corresponding waterlevel\n', sites_df)
 
     # 2b) For Sites, pull sites that have coordinates outside of New Mexico
+    # todo - geopandas example gallery 'creating a geodataframe from a regular dataframe with coordinates'
 
     # 2c) For Sites, pull Sites with null water levels below MP (dry wells)
+    # todo - ask kitty if the MP needs to come from the sql database?
+
+    # ======= WATER LEVELS ========
+
 
     # 3) For Water Levels, pull out rows with no water level
+    water_levels = raw_data[raw_data["23   C237   Water-level below LSD                             "].notnull()]
+    print('waterlevel rows with no waterlevel', water_levels)
+
 
     # 4) Remove WL's for sites not in New Mexico or that have no coordinates [using 2b]
 
@@ -120,3 +113,23 @@ if __name__ == "__main__":
     # print('post drop\n', sites_and_waterlevels)
     # sites_and_waterlevels = sites_and_waterlevels.drop_duplicates("1   C001   Site ID (station number)                          ")
     # print('sites and waterlevels with no corresponding waterlevel\n', sites_and_waterlevels) # todo - i get a number different from kitty p. here: 28453. Kitty had 28625
+
+    # sites_cols = ["1   C001   Site ID (station number)                          ",
+    #               "3   C900   Station name                                      ",
+    #               "4   C190   Other identifier                                  ",
+    #               "5   C008   County code                                       ",
+    #               "6   C909   Latitude NAD83 in decimal degrees                 ",
+    #               "7   C910   Longitude NAD83 in decimal degrees                ",
+    #               "8   C035   Method Lat/Long Determined                        ",
+    #               "9   C011   Lat/Long accuracy code                            ",
+    #               "10   C016   Altitude of land surface                          ",
+    #               "11   C022   Altitude Datum                                    ",
+    #               "12   C017   Method altitude determined                        ",
+    #               "13   C018   Altitude accuracy                                 ",
+    #               "14   C027   Hole depth                                        ",
+    #               "15   C028   Well depth                                        ",
+    #               "16   C021   Date well constructed                             ",
+    #               "17   C023   Primary use of site                               ",
+    #               "18   C024   Primary use of water                              ",
+    #               "19   C714   Aquifer code                                      "]
+    #                #                  "23   C237   Water-level below LSD                             "
