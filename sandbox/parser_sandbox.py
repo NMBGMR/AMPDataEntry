@@ -17,6 +17,7 @@
 # ============= standard library imports ========================
 import os
 import pandas as pd
+# something is wrong with the import of geopandas
 import geopandas
 from shapely.geometry import Point
 import matplotlib.pyplot as plt
