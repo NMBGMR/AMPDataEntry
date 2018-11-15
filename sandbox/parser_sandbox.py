@@ -17,6 +17,9 @@
 # ============= standard library imports ========================
 import os
 import pandas as pd
+import geopandas
+from shapely.geometry import Point
+import matplotlib.pyplot as plt
 
 # ============= local library imports ===========================
 
@@ -28,20 +31,70 @@ def format_to_csv():
     output_waterlevel_path = "/Users/Gabe/Desktop/AMP/USGS_parsing_datasets/NMBGR_20160908.csv"
     raw_data.to_csv(output_waterlevel_path)
 
-def main():
+def geo_pandas_parse(reg_dataframe):
+    """"""
+    # from the dataframe, get the latitude and longitude and convert it into a geodataframe.
+    reg_dataframe["Coordinates"] = list(zip(reg_dataframe.Longitude, reg_dataframe.Latitude))
+    reg_dataframe['Coordinates'] = reg_dataframe['Coordinates'].apply(Point)
+
+    geo_df = geopandas.GeoDataFrame(reg_dataframe, geometry='Coordinates')
+    print 'geo df', geo_df
+    #
+    # print 'geo dataframe head', geo_df.head()
+    #
+    # nm_countines = geopandas.read_file("Z:\data\datasets\USGSWaterLevelData\USGS WL New Pull 2016\GIS Files\\fe_2007_35_county.shp")
+    #
+    # ax = nm_countines.plot(color='white', edgecolor='black')
+
+    geo_df.plot(color='red')
+
+    plt.show()
+
+def rename_cols(df):
+
+    # get rid of the index column
+    df = df.drop(labels=['Unnamed: 0'], axis=1)
+
+    cols = df.columns.tolist()
+
+    cols = [col.strip() for col in cols]
+
+    cols = [col.replace(" ", "") for col in cols]
+
+    cols = [col.split('C')[-1][3:] for col in cols]
+
+    print 'columns \n', cols
+
+    # based on cols, we hardcode new site names which are easier to reference and don't have all kinds of annoying space
+    cols_new = ['SiteID', 'WellNumber', 'StationName', 'OtherID', 'CountyCode',
+                'Latitude', 'Longitude', 'MethodLatLong',
+                'LatLongAccuracy', 'LSAltitude', 'AltitudeDatum', 'AltitudeMethod',
+                'AltitudeAccuracy', 'HoleDepth', 'WellDepth', 'WellConstructionDate', 'SiteUse',
+                'WaterUse', 'AquiferCode', 'WLMeasurementDate', 'MeasurementTime',
+                'WLTimeDatum', 'WLBelowLSD', 'WLStatus', 'AccuracyCode',
+                'WLMethod', 'SourceAgency', 'WLApprovalStatus']
+
+    df.columns = cols_new
+
+    print 'new columns for DF', df.columns
+
+    return df
+
+def main(waterlevel_path):
     """
     We're parsing the water level data as given to NMBGMR as was done by Kitty Pokorny.
     :return:
     """
     # first thing is to read in the file as a pandas dataframe, then we'll start parsing it.
-    waterlevel_path = "/Users/Gabe/Desktop/AMP/USGS_parsing_datasets/NMBGR_20160908.csv"
-
-    # raw_data = pd.read_excel(waterlevel_path, sheet_name="gw.wls.subf")
     raw_data = pd.read_csv(waterlevel_path)
+
+    # let's rename the columns so that they are easier to reference later on
+    raw_data = rename_cols(raw_data)
+
     # todo vvvvv
     # 25   C276   Accuracy code <-&&&&&&&-> 23   C237   Water-level below LSD have mixed datatypes
 
-    # print('this is the raw data', raw_data)
+    # # This is to make the full dataframe display
     # pd.set_option('display.max_columns', None)
 
     print('data \n', raw_data.iloc[:10, 23])
@@ -57,21 +110,25 @@ def main():
 
     # 2) For Sites, delete duplicates of USGS IDs
 
-    sites_df = sites_df.drop_duplicates("1   C001   Site ID (station number)                          ")
+    sites_df = sites_df.drop_duplicates("SiteID")
     print(sites_df, '\n sites df, duplictes removed\n')
 
     # 2a) For Sites, pull sites that are missing corresponding waterlevels...
 
-    # Check w Kitty: i get 28,404 rows (Kitty P. got 28,625)
-    sites_df = sites_df[sites_df["23   C237   Water-level below LSD                             "].notnull()]
+    # TODO - pull only if the null values have the correct code
+    # Don't pull if D - Dry, C - Frozen, F - Flowing, I - Injection, K- Cascading water, O - Obstruction, W - Well destroyed, Z - Other
+    sites_df = sites_df[sites_df["WLBelowLSD"].notnull()]
 
     # make sure the water levels are either intergers or floats. Other values are not acceptable i.e. "-. 4"
-    sites_df = sites_df[pd.to_numeric(sites_df["23   C237   Water-level below LSD                             "],
+    sites_df = sites_df[pd.to_numeric(sites_df["WLBelowLSD"],
                            errors='coerce').notnull()]
     print('sites and waterlevels with no corresponding waterlevel\n', sites_df)
 
+    # ***** At this stage, compare with SQL database to see which sites are new before checking geographic info.
+
     # 2b) For Sites, pull sites that have coordinates outside of New Mexico
     # todo - geopandas example gallery 'creating a geodataframe from a regular dataframe with coordinates'
+    geo_pandas_parse(sites_df)
 
     # 2c) For Sites, pull Sites with null water levels below MP (dry wells)
     # todo - ask kitty if the MP needs to come from the sql database?
@@ -101,7 +158,9 @@ if __name__ == "__main__":
     # # format to csv. Only do this once
     # format_to_csv()
 
-    main()
+    waterlevel_path = "Z:\data\datasets\USGSWaterLevelData\USGS WL New Pull 2016\NMBGR_20160908.csv"
+
+    main(waterlevel_path)
 
     # 2a scratch
     # # make a dataframe of sites and waterlevels from the raw_data, then purge the sites missing waterlevel data. sites that are left you remove from sites_df
