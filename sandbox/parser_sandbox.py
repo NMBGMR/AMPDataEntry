@@ -24,6 +24,41 @@ import matplotlib.pyplot as plt
 
 # ============= local library imports ===========================
 
+def parse_well_sites_df(sites_df):
+    """"""
+
+    # 2) For Sites, delete duplicates of USGS IDs
+
+    sites_df = sites_df.drop_duplicates("SiteID")
+    print(sites_df.shape, '\n sites df, duplictes removed\n')
+
+    # 2a) For Sites, pull sites that are missing corresponding waterlevels...
+
+    # pull values for sites that are completely blank.
+    print('the columns\n', sites_df.iloc[:, 1:].columns)
+    sites_df = sites_df[sites_df.iloc[:, 1:].notnull()]
+    # there don't appear to be any that are completely blank
+    print('completely null \n', sites_df.shape)
+
+    # # TODO - pull only if the null values have the correct code
+    # # Don't pull if D - Dry, C - Frozen, F - Flowing, I - Injection, K- Cascading water, O - Obstruction, W - Well destroyed, Z - Other
+    acceptable_null_codes = ['D', 'C', 'F', 'I', 'K', 'O', 'W', 'Z']
+
+    print('test', sites_df.WLStatus.isin(acceptable_null_codes).head())
+    print('test2', sites_df.WLBelowLSD.notnull())
+
+    # todo - us the acceptable null wls mask to get rid of the rest of the nulls that are unacceptable from the sites_df
+    acceptable_null_wls_mask = sites_df.WLBelowLSD.isnull() & sites_df.WLStatus.isin(acceptable_null_codes)
+    good_null_sites_df = sites_df[sites_df.WLBelowLSD.isnull() & sites_df.WLStatus.isin(acceptable_null_codes)]
+    print('blank but has an acceptable code\n', good_null_sites_df.shape)
+
+    # make sure the water levels are either intergers or floats. Other values are not acceptable i.e. "-. 4"
+    sites_df = sites_df[pd.to_numeric(sites_df["WLBelowLSD"],
+                                      errors='coerce').notnull()]
+    print('sites and waterlevels with no corresponding waterlevel\n', sites_df.shape)
+
+    return sites_df
+
 def format_to_csv():
     waterlevel_path = "/Users/Gabe/Desktop/AMP/USGS_parsing_datasets/NMBGR_20160908.xlsx"
     raw_data = pd.read_excel(waterlevel_path, sheet_name="gw.wls.subf")
@@ -135,37 +170,10 @@ def main(waterlevel_path, county_paths):
     sites_df = raw_data
     water_levels = raw_data
 
-    # 2) For Sites, delete duplicates of USGS IDs
+    # todo - keep developing parse_well_sites_df according to Kitty's instructions.
+    parsed_sites = parse_well_sites_df(sites_df)
 
-    sites_df = sites_df.drop_duplicates("SiteID")
-    print(sites_df.shape, '\n sites df, duplictes removed\n')
-
-    # 2a) For Sites, pull sites that are missing corresponding waterlevels...
-
-    # pull values for sites that are completely blank.
-    print('the columns\n', sites_df.iloc[:, 1:].columns)
-    sites_df = sites_df[sites_df.iloc[:, 1:].notnull()]
-    # there don't appear to be any that are completely blank
-    print('completely null \n', sites_df.shape)
-
-    # # TODO - pull only if the null values have the correct code
-    # # Don't pull if D - Dry, C - Frozen, F - Flowing, I - Injection, K- Cascading water, O - Obstruction, W - Well destroyed, Z - Other
-    acceptable_null_codes = ['D', 'C', 'F', 'I', 'K', 'O', 'W', 'Z']
-
-    print('test', sites_df.WLStatus.isin(acceptable_null_codes).head())
-    print('test2', sites_df.WLBelowLSD.notnull())
-
-    # todo - us the acceptable null wls mask to get rid of the rest of the nulls that are unacceptable from the sites_df
-    acceptable_null_wls_mask = sites_df.WLBelowLSD.isnull() & sites_df.WLStatus.isin(acceptable_null_codes)
-    good_null_sites_df = sites_df[sites_df.WLBelowLSD.isnull() & sites_df.WLStatus.isin(acceptable_null_codes)]
-    print('blank but has an acceptable code\n', good_null_sites_df.shape)
-
-    # make sure the water levels are either intergers or floats. Other values are not acceptable i.e. "-. 4"
-    sites_df = sites_df[pd.to_numeric(sites_df["WLBelowLSD"],
-                           errors='coerce').notnull()]
-    print('sites and waterlevels with no corresponding waterlevel\n', sites_df.shape)
-
-    # ***** At this stage, compare with SQL database to see which sites are new before checking geographic info.
+    # ***** Todo - At this stage, compare with SQL database to see which sites are new before checking geographic info.
 
     # 2b) For Sites, pull sites that have coordinates outside of New Mexico
     geo_pandas_parse(sites_df, nm_county_path=county_paths['nm'], tx_county_path=county_paths['tx'],
