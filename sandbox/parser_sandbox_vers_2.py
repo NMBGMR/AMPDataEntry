@@ -56,7 +56,7 @@ def rename_cols(df):
     print('new columns for DF', df.columns)
     return df
 
-def geo_pandas_parse(reg_dataframe, nm_county_path=None, tx_county_path=None, co_county_path=None, az_county_path=None):
+def geo_pandas_parse(reg_dataframe, filter_path, nm_county_path=None, tx_county_path=None, co_county_path=None, az_county_path=None):
     """"""
 
     # === from the dataframe, get the latitude and longitude and convert it into a geodataframe ===
@@ -90,7 +90,7 @@ def geo_pandas_parse(reg_dataframe, nm_county_path=None, tx_county_path=None, co
 
     # === make a dictionary of how each county matches its coordinates in the site dataframe ===
     county_match_mask_dict = {}
-    # todo - so far this is only for NM counties
+    # todo - Add the counties from other states.
     for index, county in enumerate(nm_counties.NAME.tolist()):
         print(county)
         poly = nm_counties.loc[index, 'geometry']
@@ -108,6 +108,7 @@ def geo_pandas_parse(reg_dataframe, nm_county_path=None, tx_county_path=None, co
     # ax = nm_counties.plot(edgecolor='black')
     # # geo_df.plot(ax=ax, color='red')
     masked_dataframes = []
+    inverse_masked_dfs = []
     for index, county in enumerate(nm_counties.NAME.tolist()):
         # print(' this is the county mask\n', county_match_mask_dict[county])
         mask = county_match_mask_dict[county]
@@ -115,16 +116,24 @@ def geo_pandas_parse(reg_dataframe, nm_county_path=None, tx_county_path=None, co
         print('masked dataframe\n', masked_df.shape)
         # masked_df.plot(ax=ax)
         masked_dataframes.append(masked_df)
-        # geo_df[mask].plot(ax=ax)
+
+        # inverse
+        inv_mask = ~mask
+        inv_masked_df = geo_df[inv_mask]
+        inverse_masked_dfs.append(inv_masked_df)
 
     # plot each dataframe mask
     for i in masked_dataframes:
         i.plot(ax=ax, color='red')
     plt.show()
 
-    # todo: how do i return the geographically filtered site dataframe? Stitch the masked dataframes back together?
+    # this is all the good data
     geo_filtered_df = pd.concat(masked_dataframes)
     print('done. DF shape after geo filtering', geo_filtered_df.shape)
+
+    # output the rejected data to a csv
+    geo_rejects = pd.concat(inverse_masked_dfs)
+    geo_rejects.to_csv(os.path.join(filter_path, 'geo_rejected.csv'))
 
     # we remove like 1,000 or so bad sites. That will probably decrease after we include the counties from other states.
     return geo_filtered_df
@@ -161,7 +170,7 @@ def parse_sites(sites_path, filtered_data_path, county_paths):
     # todo - Get this part going after thanksgiving
 
     # === Check to make sure that county codes match the lat long coordinates of any of the sites
-    sites_df = geo_pandas_parse(sites_df, nm_county_path=county_paths['nm'], tx_county_path=county_paths['tx'],
+    sites_df = geo_pandas_parse(sites_df, filtered_data_path, nm_county_path=county_paths['nm'], tx_county_path=county_paths['tx'],
                      co_county_path=county_paths['co'], az_county_path=county_paths['az'])
 
 
