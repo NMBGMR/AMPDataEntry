@@ -19,8 +19,68 @@ from pandas import read_csv
 from backend.database_connector import DatabaseConnector
 
 SITE_ID_LEN = len('312804108332301')
+COUNTY_CODES = {'McKinley': 31, 'Socorro': 53, 'Colfax': 7, 'Cibola': 6, 'Catron': 3,
+                'Torrance': 57,
+                'Lea': 25, 'Grant': 17, 'San Miguel': 47, 'Otero': 35, 'Santa Fe': 49, 'De Baca': 11,
+                'Luna': 29, 'Chaves': 5, 'Curry': 9, 'Hidalgo': 23, 'Valencia': 61, 'Union': 59,
+                'Bernalillo': 1, 'Lincoln': 27, 'Sierra': 51, 'Sandoval': 43, 'San Juan': 45,
+                'Guadalupe': 19, 'Quay': 37, 'Rio Arriba': 39, 'Taos': 55, 'Mora': 33, 'Roosevelt': 41,
+                'Eddy': 15, 'Harding': 21, 'Los Alamos': 28, 'Dona Ana': 13}
 
 
+def within(poly, lon, lat):
+    return True
+
+
+def geo_test(site, nm_counties):
+    lon, lat = site['Longitude'], site['Latitude']
+    for index, county in nm_counties:
+        poly = county['geometry']
+        if within(poly, lon, lat) and site['CountyCode'] == county['Name']:
+            return True
+
+
+def clean_sites(root, site_filename):
+    counties = make_county_paths(root)
+
+    path = os.path.join(root, site_filename)
+
+    sites_df = read_csv(path)
+    sites_df = rename_cols(sites_df)
+
+    # how does this get rid of sites with duplicate dates?
+    # === get rid of sites with duplicate dates ===
+    print('before removing duplicates', sites_df.shape)
+    sites_df = sites_df.drop_duplicates('SiteID')
+    print('after removing duplicates', sites_df.shape)
+
+    removed_sites = []
+    existing_sites = []
+    db = get_database()
+
+    nm_counties = geopandas.read_file(counties['nm'])
+
+    for row in sites_df:
+        siteid = row['SiteID']
+        if len(siteid) != SITE_ID_LEN:
+            print('removing {}'.format(siteid))
+            removed_sites.append(siteid)
+        else:
+            # test if in database
+            dbsite = db.get_site(siteid)
+            if dbsite is not None:
+                existing_sites.append(siteid)
+
+                # test geo
+                geo_test(row, nm_counties)
+
+    # save removed
+    save_list(removed_sites, os.path.join(root, 'removed_sites.csv'))
+    save_list(existing_sites, os.path.join(root, 'existing_sites.csv'))
+    return existing_sites, removed_sites
+
+
+# utility functions
 def rename_cols(df):
     # get rid of the index column
     # df = df.drop(labels=['Unnamed: 0'], axis=1)
@@ -48,39 +108,6 @@ def rename_cols(df):
     df.columns = cols_new
     print('new columns for DF', df.columns)
     return df
-
-
-def clean_sites(root, site_filename):
-    path = os.path.join(root, site_filename)
-
-    sites_df = read_csv(path)
-    sites_df = rename_cols(sites_df)
-
-    # how does this get rid of sites with duplicate dates?
-    # === get rid of sites with duplicate dates ===
-    print('before removing duplicates', sites_df.shape)
-    sites_df = sites_df.drop_duplicates('SiteID')
-    print('after removing duplicates', sites_df.shape)
-
-    removed_sites = []
-    existing_sites = []
-    db = get_database()
-
-    for row in sites_df:
-        siteid = row['SiteID']
-        if len(siteid) != SITE_ID_LEN:
-            print('removing {}'.format(siteid))
-            removed_sites.append(siteid)
-        else:
-            # test if in database
-            dbsite = db.get_site(siteid)
-            if dbsite is not None:
-                existing_sites.append(siteid)
-
-    # save removed
-    save_list(removed_sites, os.path.join(root, 'removed_sites.csv'))
-    save_list(existing_sites, os.path.join(root, 'existing_sites.csv'))
-    return existing_sites, removed_sites
 
 
 def save_list(ls, path, delimiter=','):
