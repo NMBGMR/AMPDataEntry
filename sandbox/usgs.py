@@ -28,8 +28,19 @@ COUNTY_CODES = {'McKinley': 31, 'Socorro': 53, 'Colfax': 7, 'Cibola': 6, 'Catron
                 'Eddy': 15, 'Harding': 21, 'Los Alamos': 28, 'Dona Ana': 13}
 
 
+def get_bounding_box(poly):
+    # get list of points the make up poly
+    # pts = poly.points
+    # pts = (x1,y1),(x2,y2)...
+
+    xs, ys = zip(*pts)
+    return min(xs), max(xs), min(ys), max(ys)
+
+
 def within(poly, lon, lat):
-    return True
+    # get bounding box
+    xmin, xmax, ymin, ymax = get_bounding_box(poly)
+    return xmin < lon <= xmax and ymin < lat < ymax
 
 
 def geo_test(site, nm_counties):
@@ -56,6 +67,9 @@ def clean_sites(root, site_filename):
 
     removed_sites = []
     existing_sites = []
+    invalid_geo_sites = []
+    valid_sites = []
+
     db = get_database()
 
     nm_counties = geopandas.read_file(counties['nm'])
@@ -72,11 +86,16 @@ def clean_sites(root, site_filename):
                 existing_sites.append(siteid)
 
                 # test geo
-                geo_test(row, nm_counties)
+                if not geo_test(row, nm_counties):
+                    invalid_geo_sites.append(siteid)
+                else:
+                    valid_sites.append(siteid)
 
     # save removed
     save_list(removed_sites, os.path.join(root, 'removed_sites.csv'))
     save_list(existing_sites, os.path.join(root, 'existing_sites.csv'))
+    save_list(invalid_geo_sites, os.path.join(root, 'invalid_geo_sites.csv'))
+    save_list(valid_sites, os.path.join(root, 'valid_sites.csv'))
     return existing_sites, removed_sites
 
 
