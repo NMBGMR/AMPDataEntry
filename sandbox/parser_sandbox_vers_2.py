@@ -23,6 +23,8 @@ from shapely.geometry import Point
 import matplotlib.pyplot as plt
 import numpy as np
 # ============= local library imports ===========================
+from backend.database_connector import DatabaseConnector
+
 
 def rename_cols(df):
 
@@ -168,10 +170,27 @@ def parse_sites(sites_path, filtered_data_path, county_paths):
 
     # === Query the SQL database to see if there are any new sites ===
     # todo - Get this part going after thanksgiving
+    db = get_database()
+
+    not_found_sites = []
+    for site in sites:
+        if not db.get_site(site):
+            not_found_sites.append(site)
+
 
     # === Check to make sure that county codes match the lat long coordinates of any of the sites
     sites_df = geo_pandas_parse(sites_df, filtered_data_path, nm_county_path=county_paths['nm'], tx_county_path=county_paths['tx'],
                      co_county_path=county_paths['co'], az_county_path=county_paths['az'])
+
+
+def get_database():
+    db = DatabaseConnector()
+    db.credentials.username = os.environ['NM_AQUIFER_USERNAME']
+    db.credentials.password = os.environ['NM_AQUIFER_PASSWORD']
+    db.credentials.host = os.environ['NM_AQUIFER_HOST']
+    db.credentials.database_name = 'NM_AQUIFER'
+
+    return db
 
 
 def main(wl_path, sites_path, county_paths, filteted_data_path):

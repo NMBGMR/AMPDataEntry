@@ -70,14 +70,20 @@ class Credentials(HasTraits):
 
 
 class DatabaseConnector(HasTraits):
-    credientials = Instance(Credentials)
+    credentials = Instance(Credentials)
+
+    def get_site(self, site_id):
+        with self._get_session() as cursor:
+            cmd = 'select * from dbo.Location where SiteID=%s'
+            cursor.execute(cmd, site_id)
+            return cursor.fetchone()
 
     def _credentials_default(self):
         cred = Credentials()
         return cred
 
-    def _get_cursor(self):
-        cred = self.credientials
+    def _get_session(self):
+        cred = self.credentials
         return SessionCTX(cred.host, cred.user, cred.password, cred.database_name)
 
 # ============= EOF =============================================
