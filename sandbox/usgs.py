@@ -40,7 +40,7 @@ def get_bounding_box(poly):
 def within(poly, lon, lat):
     # get bounding box
     xmin, xmax, ymin, ymax = get_bounding_box(poly)
-    return xmin < lon <= xmax and ymin < lat < ymax
+    return xmin < lon <= xmax and ymin < lat <= ymax
 
 
 def geo_test(site, nm_counties):
@@ -55,9 +55,7 @@ def clean_sites(root, site_filename):
     counties = make_county_paths(root)
 
     path = os.path.join(root, site_filename)
-
-    sites_df = read_csv(path)
-    sites_df = rename_cols(sites_df)
+    sites_df = rename_cols(read_csv(path))
 
     # how does this get rid of sites with duplicate dates?
     # === get rid of sites with duplicate dates ===
@@ -65,10 +63,10 @@ def clean_sites(root, site_filename):
     sites_df = sites_df.drop_duplicates('SiteID')
     print('after removing duplicates', sites_df.shape)
 
-    removed_sites = []
-    existing_sites = []
+    invalid_len_sites = []
     invalid_geo_sites = []
-    valid_sites = []
+    valid_geo_sites = []
+    existing_sites = []
 
     db = get_database()
 
@@ -78,54 +76,42 @@ def clean_sites(root, site_filename):
         siteid = row['SiteID']
         if len(siteid) != SITE_ID_LEN:
             print('removing {}'.format(siteid))
-            removed_sites.append(siteid)
+            invalid_len_sites.append(siteid)
         else:
-            # test if in database
-            dbsite = db.get_site(siteid)
-            if dbsite is not None:
-                existing_sites.append(siteid)
+            # test geo
+            if not geo_test(row, nm_counties):
+                invalid_geo_sites.append(siteid)
+            else:
+                valid_geo_sites.append(siteid)
 
-                # test geo
-                if not geo_test(row, nm_counties):
-                    invalid_geo_sites.append(siteid)
-                else:
-                    valid_sites.append(siteid)
+                # test if in database
+                dbsite = db.get_site(siteid)
+                if dbsite is not None:
+                    existing_sites.append(siteid)
 
     # save removed
-    save_list(removed_sites, os.path.join(root, 'removed_sites.csv'))
-    save_list(existing_sites, os.path.join(root, 'existing_sites.csv'))
+    save_list(invalid_len_sites, os.path.join(root, 'invalid_len_sites.csv'))
     save_list(invalid_geo_sites, os.path.join(root, 'invalid_geo_sites.csv'))
-    save_list(valid_sites, os.path.join(root, 'valid_sites.csv'))
-    return existing_sites, removed_sites
+    save_list(valid_geo_sites, os.path.join(root, 'valid_geo_sites.csv'))
+    save_list(existing_sites, os.path.join(root, 'existing_sites.csv'))
 
 
 # utility functions
 def rename_cols(df):
-    # get rid of the index column
-    # df = df.drop(labels=['Unnamed: 0'], axis=1)
+    """
+    this function is a potential trouble maker. hardcoding the column names is hazardous.
+    What happens if a future input file has different column ordering?
 
-    cols = df.columns.tolist()
-    cols = [col.strip().replace(' ', '') for col in cols]
-    cols = [col.split('C')[-1][3:] for col in cols]
-
-    print('columns \n', cols)
-
-    # # based on cols, we hardcode new site names which are easier to reference and don't have all kinds of annoying
-    # space
+    :param df:
+    :return:
+    """
     cols_new = ['SiteID', 'OtherID', 'StationName', 'CountyCode',
                 'Latitude', 'Longitude', 'MethodLatLong',
                 'LatLongAccuracy', 'LSAltitude', 'AltitudeDatum', 'AltitudeMethod',
                 'AltitudeAccuracy', 'HoleDepth', 'WellDepth', 'WellConstructionDate', 'SiteUse',
                 'LEVReadyForWebFlag']
-    # # testing
-    # cols_old = ['SiteID(stationnumber)', 'Otheridentifier', 'Stationname', 'tycode', 'LatitudeNAD83indecimaldegrees',
-    #  'LongitudeNAD83indecimaldegrees', 'MethodLat/LongDetermined', 'Lat/Longaccuracycode',
-    # 'Altitudeoflandsurface', 'AltitudeDatum', 'Methodaltitudedetermined', 'Altitudeaccuracy',
-    #  'Holedepth', 'Welldepth', 'Datewellconstructed', 'Primaryuseofsite', 'LEVrecordreadyforwebflag']
-    # print(len(cols_new ), len(cols_old))
 
     df.columns = cols_new
-    print('new columns for DF', df.columns)
     return df
 
 
@@ -160,8 +146,7 @@ def get_database():
 def main():
     # define some paths
     root = "/Users/Gabe/Desktop/AMP/USGS_parsing_datasets"
-
-    es, rms = clean_sites(root, '2018sites.csv')
+    clean_sites(root, '2018sites.csv')
 
 
 if __name__ == '__main__':
