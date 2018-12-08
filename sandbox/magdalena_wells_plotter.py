@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import mpl_toolkits.axisartist as AA
 from mpl_toolkits.axes_grid1 import host_subplot
+import numpy as np
 
 def fix_dates(wl_df, data_df):
     """"""
@@ -35,6 +36,10 @@ def plot_stuff(data_df, wl_df):
 
     # precip and usage time series
     time_series1 = data_df['Period']
+    precip_series_list = data_df['Period'].tolist()
+    print 'len', len(precip_series_list)
+    print 'len', len(data_df['Maggie_Precip_mm'].tolist())
+    precip_series = np.linspace(0, len(precip_series_list))
 
     #water level time series
     time_series2 = wl_df['new_date']
@@ -64,23 +69,6 @@ def plot_stuff(data_df, wl_df):
 
     # todo - figure out issue with bar plot and dates on monday.
     plt.show()
-
-    # # plt.bar(pd.to_datetime(time_series1), data_df['Maggie_Precip_mm'])
-    # # plt.show(pd.to_datetime(time_series1), data_df[' Maggie_Precip_mm'], color='r')
-    #
-    # figure1, axis1 = plt.subplots()
-    # axis1.plot(pd.to_datetime(time_series1), data_df['trujillo_usage'], color='b')
-    # axis1.plot(pd.to_datetime(time_series1), data_df['benjamin_usage'], color='b')
-    # axis1.set_xlabel('date')
-    # axis1.set_ylabel('water usage in gallons', color='b')
-    #
-    #
-    # axis2 = axis1.twinx()
-    # # axis2.bar(pd.to_datetime(time_series1), data_df[' Maggie_Precip_mm'], color='r')
-    # # axis2.xaxis_date()
-    # axis2.plot(pd.to_datetime(time_series1), data_df['Maggie_Precip_mm'], color='r')
-    # axis2.set_ylabel('precip', color='r')
-    # plt.show()
 
 
 
