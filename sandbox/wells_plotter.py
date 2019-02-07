@@ -24,21 +24,21 @@ def date_lucid(df):
     dates = pd.to_datetime(df['DateMeasured'])
     df['new_date'] = dates
 
-def fix_dates(df):
-    """"""
-    dates = pd.to_datetime(df['DateMeasured'])
-
-    new_dates = []
-    for i, row in dates.iteritems():
-        if i % 2 == 0:
-            row = row.replace(hour=0)
-            new_dates.append(row)
-        else:
-            row = row.replace(hour=12)
-            new_dates.append(row)
-
-    new_dates = pd.Series(new_dates)
-    df['new_date'] = new_dates
+# def fix_dates(df):
+#     """"""
+#     dates = pd.to_datetime(df['DateMeasured'])
+#
+#     new_dates = []
+#     for i, row in dates.iteritems():
+#         if i % 2 == 0:
+#             row = row.replace(hour=0)
+#             new_dates.append(row)
+#         else:
+#             row = row.replace(hour=12)
+#             new_dates.append(row)
+#
+#     new_dates = pd.Series(new_dates)
+#     df['new_date'] = new_dates
 
 
 def get_data():
@@ -52,8 +52,6 @@ def get_data():
     danielson_wl_df = pd.read_csv(danielson_wl_path)
     precip_df = pd.read_csv(precipitation_path)
 
-    # print 'danielson_wl_df', danielson_wl_df
-
     # fix dates
     date_lucid(trujillo_wl_df)
     date_lucid(danielson_wl_df)
@@ -61,10 +59,6 @@ def get_data():
     # get rid of Data for Danielson well before July 2017
     danielson_wl_df = danielson_wl_df[(danielson_wl_df['new_date'].dt.year >= 2017) & (danielson_wl_df['new_date'].dt.month >= 07)]
 
-    # print 'trujillos\n', trujillo_wl_df['new_date']
-
-    # # fix dates
-    # fix_dates(trujillo_wl_df)
 
 
     return wd_df, danielson_wl_df, trujillo_wl_df, precip_df
