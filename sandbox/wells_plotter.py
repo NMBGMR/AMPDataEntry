@@ -17,7 +17,12 @@ import time
 
 import matplotlib.pyplot as plt
 import pandas as pd
+# import datetime.datetime as dt
 
+def date_lucid(df):
+    """"""
+    dates = pd.to_datetime(df['DateMeasured'])
+    df['new_date'] = dates
 
 def fix_dates(df):
     """"""
@@ -38,17 +43,31 @@ def fix_dates(df):
 
 def get_data():
     data_path = 'Z:\data\datasets\magdalena_wells\magdalena_wells_17_18.csv'
-    waterlevel_path = 'Z:\data\datasets\magdalena_wells\WaterLevelsContinuous_Pressure_mg_038_0717_1118_for_import.csv'
+    trujillo_waterlevel_path = 'Z:\data\datasets\magdalena_wells\TrujilloWaterLevelsContinuous_Pressure_mg_038_0717_1118_for_import.csv'
+    danielson_wl_path = 'Z:\data\datasets\magdalena_wells\DanielsonWaterLevelsContinuous_Pressure_for_import.csv'
     precipitation_path = 'Z:\data\datasets\magdalena_wells\magdalena_kellyranch_weather.csv'
 
     wd_df = pd.read_csv(data_path)
-    wl_df = pd.read_csv(waterlevel_path)
+    trujillo_wl_df = pd.read_csv(trujillo_waterlevel_path)
+    danielson_wl_df = pd.read_csv(danielson_wl_path)
     precip_df = pd.read_csv(precipitation_path)
 
-    # fix dates
-    fix_dates(wl_df)
+    # print 'danielson_wl_df', danielson_wl_df
 
-    return wd_df, wl_df, precip_df
+    # fix dates
+    date_lucid(trujillo_wl_df)
+    date_lucid(danielson_wl_df)
+
+    # get rid of Data for Danielson well before July 2017
+    danielson_wl_df = danielson_wl_df[(danielson_wl_df['new_date'].dt.year >= 2017) & (danielson_wl_df['new_date'].dt.month >= 07)]
+
+    # print 'trujillos\n', trujillo_wl_df['new_date']
+
+    # # fix dates
+    # fix_dates(trujillo_wl_df)
+
+
+    return wd_df, danielson_wl_df, trujillo_wl_df, precip_df
 
 
 def get_water_levels(wl_df):
@@ -74,7 +93,7 @@ def datetimes_to_floats(ds):
     return [time.mktime(di.timetuple()) for di in ds]
 
 
-def plot(wd_df, wl_df, precip_df):
+def plot(wd_df, danielson_wl_df, trujillo_wl_df, precip_df):
 
     # ===== Benjamin =====
     fig, (ax1, ax2) = plt.subplots(2)
@@ -84,9 +103,9 @@ def plot(wd_df, wl_df, precip_df):
     # plt.style.use('seaborn-notebook')
     plt.style.use('seaborn-pastel')
 
-    wl_xs, wl_ys = get_water_levels(wl_df)
+    wl_xs, wl_ys = get_water_levels(danielson_wl_df)
     # plot water levels
-    ax2.plot(wl_xs, wl_ys, color='b', linewidth=2.0, label='Trujillo Test Well')
+    ax2.plot(wl_xs, wl_ys, color='b', linewidth=2.0, label='Danielson Well')
     ax2.set_xlabel('Date')
     ax2.set_ylabel('Depth to Water (ft bgs)', color='b')
     ax2.invert_yaxis()
@@ -131,7 +150,7 @@ def plot(wd_df, wl_df, precip_df):
     fig.suptitle('Withdrawals, Precipitation and Waterlevels in Trujillo Well Magdalena, NM', size=20)
     # plt.style.use('seaborn-notebook')
 
-    wl_xs, wl_ys = get_water_levels(wl_df)
+    wl_xs, wl_ys = get_water_levels(trujillo_wl_df)
     # plot water levels
     tw_test = ax2.plot(wl_xs, wl_ys, color='b', linewidth=2.0, label='Trujillo Test Well')
     ax2.set_xlabel('Date')
@@ -174,6 +193,8 @@ def plot(wd_df, wl_df, precip_df):
 
 
 def main():
+    # wd_df, trujillo_wl_df, danielson_wl_df, precip_df = get_data()
+
     plot(*get_data())
 
 
